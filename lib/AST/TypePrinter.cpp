@@ -69,7 +69,6 @@ namespace {
       SuppressTagKeyword = Policy.SuppressTagKeyword;
       SuppressScope = Policy.SuppressScope;
       Policy.SuppressTagKeyword = true;
-      Policy.SuppressScope = true;
     }
     
     ~ElaboratedTypePolicyRAII() {
@@ -717,8 +716,12 @@ void TypePrinter::printUnresolvedUsingBefore(const UnresolvedUsingType *T,
 void TypePrinter::printUnresolvedUsingAfter(const UnresolvedUsingType *T,
                                              raw_ostream &OS) { }
 
-void TypePrinter::printTypedefBefore(const TypedefType *T, raw_ostream &OS) { 
-  printTypeSpec(T->getDecl(), OS);
+void TypePrinter::printTypedefBefore(const TypedefType *T, raw_ostream &OS) {
+  NamedDecl *D = T->getDecl();
+  if (!Policy.SuppressScope)
+    AppendScope(D->getDeclContext(), OS);
+
+  printTypeSpec(D, OS);
 }
 void TypePrinter::printTypedefAfter(const TypedefType *T, raw_ostream &OS) { } 
 
@@ -967,6 +970,9 @@ void TypePrinter::printSubstTemplateTypeParmPackAfter(
 void TypePrinter::printTemplateSpecializationBefore(
                                             const TemplateSpecializationType *T, 
                                             raw_ostream &OS) { 
+  if (!Policy.SuppressScope)
+    AppendScope(T->getTemplateName().getAsTemplateDecl()->getDeclContext(), OS);
+
   IncludeStrongLifetimeRAII Strong(Policy);
   T->getTemplateName().print(OS, Policy);
   
@@ -992,10 +998,7 @@ void TypePrinter::printElaboratedBefore(const ElaboratedType *T,
   OS << TypeWithKeyword::getKeywordName(T->getKeyword());
   if (T->getKeyword() != ETK_None)
     OS << " ";
-  NestedNameSpecifier* Qualifier = T->getQualifier();
-  if (Qualifier)
-    Qualifier->print(OS, Policy);
-  
+
   ElaboratedTypePolicyRAII PolicyRAII(Policy);
   printBefore(T->getNamedType(), OS);
 }

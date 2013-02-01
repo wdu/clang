@@ -1621,3 +1621,8 @@ void QualType::getAsStringInternal(const Type *ty, Qualifiers qs,
   std::string str = StrOS.str();
   buffer.swap(str);
 }
+
+void AppendScope(DeclContext *DC, raw_ostream &OS, const PrintingPolicy &policy)
+{
+  TypePrinter(policy).AppendScope(DC, OS);
+}

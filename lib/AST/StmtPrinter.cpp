@@ -576,8 +576,13 @@ void StmtPrinter::VisitSEHFinallyStmt(SEHFinallyStmt *Node) {
 //===----------------------------------------------------------------------===//
 //  Expr printing methods.
 //===----------------------------------------------------------------------===//
+void AppendScope(DeclContext *DC, raw_ostream &OS, const PrintingPolicy &policy);
 
 void StmtPrinter::VisitDeclRefExpr(DeclRefExpr *Node) {
+  if (!Policy.SuppressScope) {
+    ValueDecl *D = Node->getDecl();
+    AppendScope(D->getDeclContext()->getParent(), OS, Policy);
+  }
   if (NestedNameSpecifier *Qualifier = Node->getQualifier())
     Qualifier->print(OS, Policy);
   if (Node->hasTemplateKeyword())

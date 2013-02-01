@@ -341,6 +341,69 @@ CXType clang_getPointeeType(CXType CT) {
   return MakeCXType(T, GetTU(CT));
 }
 
+CXString clang_getTypeAsString(CXType CT) {
+  if (CT.kind == CXType_Invalid)
+    return cxstring::createCXString("CXType_Invalid");
+
+  QualType T = GetQualType(CT);
+
+  return cxstring::createCXString(T.getAsString());
+}
+
+CXString clang_getDefaultValueAsString(CXCursor C) {
+  std::string retval;
+  const Decl *D = static_cast<const Decl*>(C.data[0]);
+  if (const VarDecl *FD = dyn_cast<VarDecl>(D)) {
+    const Expr *E = FD->getAnyInitializer();
+    if (E) {
+      LangOptions options;
+      SmallString<256> Buf;
+      llvm::raw_svector_ostream StrOS(Buf);
+      PrintingPolicy pp(options);
+      pp.SuppressTagKeyword = true;
+      E->printPretty(StrOS, 0, pp);
+      retval = StrOS.str();
+    }
+  }
+  return cxstring::createCXString(retval);
+}
+
+bool clang_isPolymorphic(CXType CT) {
+  QualType T = GetQualType(CT);
+  const Type *t = T.getTypePtr();
+  CXXRecordDecl *d = t->getAsCXXRecordDecl();
+  if (d) {
+    return d->isPolymorphic();
+  }
+  return false;
+}
+
+bool clang_isAbstractClass(CXType CT) {
+  QualType T = GetQualType(CT);
+  const Type *t = T.getTypePtr();
+  CXXRecordDecl *d = t->getAsCXXRecordDecl();
+  if (d) {
+    return d->isAbstract();
+  }
+  return false;
+}
+
+bool clang_isAbstractFunction(CXCursor C) {
+  const Decl *D = static_cast<const Decl*>(C.data[0]);
+  if (const FunctionDecl *FD = dyn_cast<FunctionDecl>(D)) {
+    return FD->isPure();
+  }
+  return false;
+}
+
+bool clang_isConstMethod(CXType CT) {
+  QualType T = GetQualType(CT);
+  const Type *t = T.getTypePtr();
+  if (t->isFunctionType())
+    return t->castAs<FunctionType>()->isConst();
+  return false;
+}
+
 CXCursor clang_getTypeDeclaration(CXType CT) {
   if (CT.kind == CXType_Invalid)
     return cxcursor::MakeCXCursorInvalid(CXCursor_NoDeclFound);

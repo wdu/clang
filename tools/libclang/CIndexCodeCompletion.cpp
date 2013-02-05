@@ -48,7 +48,6 @@
 #endif
 
 using namespace clang;
-using namespace clang::cxstring;
 using namespace clang::cxindex;
 
 extern "C" {
@@ -135,7 +134,7 @@ CXString clang_getCompletionChunkText(CXCompletionString completion_string,
   case CodeCompletionString::CK_Equal:
   case CodeCompletionString::CK_HorizontalSpace:
   case CodeCompletionString::CK_VerticalSpace:
-    return createCXString((*CCStr)[chunk_number].Text, false);
+    return cxstring::createRef((*CCStr)[chunk_number].Text);
       
   case CodeCompletionString::CK_Optional:
     // Note: treated as an empty text block.
@@ -210,7 +209,7 @@ unsigned clang_getCompletionNumAnnotations(CXCompletionString completion_string)
 CXString clang_getCompletionAnnotation(CXCompletionString completion_string,
                                        unsigned annotation_number) {
   CodeCompletionString *CCStr = (CodeCompletionString *)completion_string;
-  return CCStr ? createCXString(CCStr->getAnnotation(annotation_number))
+  return CCStr ? cxstring::createRef(CCStr->getAnnotation(annotation_number))
                : cxstring::createNull();
 }
 
@@ -224,7 +223,7 @@ clang_getCompletionParent(CXCompletionString completion_string,
   if (!CCStr)
     return cxstring::createNull();
   
-  return createCXString(CCStr->getParentContextName(), /*DupString=*/false);
+  return cxstring::createRef(CCStr->getParentContextName());
 }
 
 CXString
@@ -234,7 +233,7 @@ clang_getCompletionBriefComment(CXCompletionString completion_string) {
   if (!CCStr)
     return cxstring::createNull();
 
-  return createCXString(CCStr->getBriefComment(), /*DupString=*/false);
+  return cxstring::createRef(CCStr->getBriefComment());
 }
 
 namespace {
@@ -600,8 +599,7 @@ namespace {
         // However, there are cases when AllocatedResults outlives the
         // CXTranslationUnit.  This is a workaround that failure mode.
         if (cxstring::isManagedByPool(cursorUSR)) {
-          CXString heapStr =
-            cxstring::createCXString(clang_getCString(cursorUSR), true);
+          CXString heapStr = cxstring::createDup(clang_getCString(cursorUSR));
           clang_disposeString(cursorUSR);
           cursorUSR = heapStr;
         }
@@ -914,7 +912,7 @@ CXString clang_codeCompleteGetContainerUSR(CXCodeCompleteResults *ResultsIn) {
   if (!Results)
     return cxstring::createEmpty();
   
-  return createCXString(clang_getCString(Results->ContainerUSR));
+  return cxstring::createRef(clang_getCString(Results->ContainerUSR));
 }
 
   
@@ -924,7 +922,7 @@ CXString clang_codeCompleteGetObjCSelector(CXCodeCompleteResults *ResultsIn) {
   if (!Results)
     return cxstring::createEmpty();
   
-  return createCXString(Results->Selector);
+  return cxstring::createDup(Results->Selector);
 }
   
 } // end extern "C"

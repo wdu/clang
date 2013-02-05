@@ -267,6 +267,19 @@ TEST_F(FormatTest, FormatsForLoop) {
       "     aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa(\n"
       "         aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa);\n"
       "     ++aaaaaaaaaaa) {\n}");
+
+  verifyGoogleFormat(
+      "for (int aaaaaaaaaaa = 1; aaaaaaaaaaa <= bbbbbbbbbbbbbbb;\n"
+      "     aaaaaaaaaaa++, bbbbbbbbbbbbbbbbb++) {\n"
+      "}");
+  verifyGoogleFormat(
+      "for (int aaaaaaaaaaa = 1;\n"
+      "     aaaaaaaaaaa <= aaaaaaaaaaaaaaaaaaaaaa(aaaaaaaaaaaaaaaa,\n"
+      "                                           aaaaaaaaaaaaaaaa,\n"
+      "                                           aaaaaaaaaaaaaaaa,\n"
+      "                                           aaaaaaaaaaaaaaaa);\n"
+      "     aaaaaaaaaaa++, bbbbbbbbbbbbbbbbb++) {\n"
+      "}");
 }
 
 TEST_F(FormatTest, RangeBasedForLoops) {
@@ -466,6 +479,8 @@ TEST_F(FormatTest, UnderstandsSingleLineComments) {
 
   verifyFormat("someFunction(anotherFunction( // Force break.\n"
                "    parameter));");
+
+  verifyGoogleFormat("#endif  // HEADER_GUARD");
 }
 
 TEST_F(FormatTest, UnderstandsMultiLineComments) {
@@ -693,6 +708,12 @@ TEST_F(FormatTest, NestedStaticInitializers) {
       "                              222222222222222222222222222222,\n"
       "                              333333333333333333333333333333 },\n"
       "                            { 1, 2, 3 }, { 1, 2, 3 } } };");
+  verifyFormat(
+      "SomeArrayOfSomeType a = { { { 1, 2, 3 } }, { { 1, 2, 3 } },\n"
+      "                          { { 111111111111111111111111111111,\n"
+      "                              222222222222222222222222222222,\n"
+      "                              333333333333333333333333333333 } },\n"
+      "                          { { 1, 2, 3 } }, { { 1, 2, 3 } } };");
 
   // FIXME: We might at some point want to handle this similar to parameter
   // lists, where we have an option to put each on a single line.
@@ -1072,6 +1093,13 @@ TEST_F(FormatTest, BreaksDesireably) {
 }
 
 TEST_F(FormatTest, FormatsOneParameterPerLineIfNecessary) {
+  verifyGoogleFormat("f(aaaaaaaaaaaaaaaaaaaa,\n"
+                     "  aaaaaaaaaaaaaaaaaaaa,\n"
+                     "  aaaaaaaaaaaaaaaaaaaa + aaaaaaaaaaaaaaaaaaaa);");
+  verifyGoogleFormat(
+      "aaaaaaa(aaaaaaaaaaaaa,\n"
+      "        aaaaaaaaaaaaa,\n"
+      "        aaaaaaaaaaaaa(aaaaaaaaaaaaaaaaa, aaaaaaaaaaaaaaaa));");
   verifyGoogleFormat(
       "aaaaaaaa(aaaaaaaaaaaaa,\n"
       "         aaaaaaaaaaaaaaa(aaaaaaaaaaaaaaaaaaaaaaaaaaaaa(\n"
@@ -1270,6 +1298,13 @@ TEST_F(FormatTest, AlignsPipes) {
       "aaaaaaaa << (aaaaaaaaaaaaaaaaaaa << aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
       "                                 << aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n"
       "         << aaaaaaaaaaaaaaaaaaaaaaaaaaaaa;");
+
+  verifyFormat("return out << \"somepacket = {\\n\"\n"
+               "           << \"  aaaaaa = \" << pkt.aaaaaa << \"\\n\"\n"
+               "           << \"  bbbb = \" << pkt.bbbb << \"\\n\"\n"
+               "           << \"  cccccc = \" << pkt.cccccc << \"\\n\"\n"
+               "           << \"  ddd = [\" << pkt.ddd << \"]\\n\"\n"
+               "           << \"}\";");
 }
 
 TEST_F(FormatTest, UnderstandsEquals) {
@@ -1349,6 +1384,10 @@ TEST_F(FormatTest, WrapsTemplateDeclarations) {
   verifyFormat(
       "aaaaaaaaaaaaaaaaaaaaaaaa<aaaaaaaaaaaaaaaaa, aaaaaaaaaaaaaaaaa>(\n"
       "    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa);");
+
+  verifyFormat(
+      "a<aaaaaaaaaaaaaaaaaaaaa, aaaaaaaaaaaaaaaaaaa>(\n"
+      "    a(aaaaaaaaaaaaaaaaaa, aaaaaaaaaaaaaaaa));");
 }
 
 TEST_F(FormatTest, WrapsAtNestedNameSpecifiers) {
@@ -1885,6 +1924,16 @@ TEST_F(FormatTest, BlockComments) {
             "    parameter);",
             format("#define A\n"
                    "/* */someCall(parameter);", getLLVMStyleWithColumns(15)));
+
+  EXPECT_EQ("someFunction(1, /* comment 1 */\n"
+            "             2, /* comment 2 */\n"
+            "             3, /* comment 3 */\n"
+            "             aaaa,\n"
+            "             bbbb);",
+            format("someFunction (1,   /* comment 1 */\n"
+                   "                2, /* comment 2 */  \n"
+                   "               3,   /* comment 3 */\n"
+                   "aaaa, bbbb );", getGoogleStyle()));
 }
 
 TEST_F(FormatTest, FormatStarDependingOnContext) {
@@ -1930,20 +1979,18 @@ TEST_F(FormatTest, FormatForObjectiveCMethodDecls) {
       format("- (void)sendAction:(SEL)aSelector to:(id)anObject forAllCells:(BOOL)flag;"));
 
   // Very long objectiveC method declaration.
-  EXPECT_EQ(
-      "- (NSUInteger)indexOfObject:(id)anObject inRange:(NSRange)range\n    "
-      "outRange:(NSRange)out_range outRange1:(NSRange)out_range1\n    "
-      "outRange2:(NSRange)out_range2 outRange3:(NSRange)out_range3\n    "
-      "outRange4:(NSRange)out_range4 outRange5:(NSRange)out_range5\n    "
-      "outRange6:(NSRange)out_range6 outRange7:(NSRange)out_range7\n    "
-      "outRange8:(NSRange)out_range8 outRange9:(NSRange)out_range9;",
-      format(
-          "- (NSUInteger)indexOfObject:(id)anObject inRange:(NSRange)range "
-          "outRange:(NSRange) out_range outRange1:(NSRange) out_range1 "
-          "outRange2:(NSRange) out_range2  outRange3:(NSRange) out_range3  "
-          "outRange4:(NSRange) out_range4  outRange5:(NSRange) out_range5 "
-          "outRange6:(NSRange) out_range6  outRange7:(NSRange) out_range7  "
-          "outRange8:(NSRange) out_range8  outRange9:(NSRange) out_range9;"));
+  verifyFormat("- (NSUInteger)indexOfObject:(id)anObject\n"
+               "                    inRange:(NSRange)range\n"
+               "                   outRange:(NSRange)out_range\n"
+               "                  outRange1:(NSRange)out_range1\n"
+               "                  outRange2:(NSRange)out_range2\n"
+               "                  outRange3:(NSRange)out_range3\n"
+               "                  outRange4:(NSRange)out_range4\n"
+               "                  outRange5:(NSRange)out_range5\n"
+               "                  outRange6:(NSRange)out_range6\n"
+               "                  outRange7:(NSRange)out_range7\n"
+               "                  outRange8:(NSRange)out_range8\n"
+               "                  outRange9:(NSRange)out_range9;");
 
   verifyFormat("- (int)sum:(vector<int>)numbers;");
   verifyGoogleFormat("- (void)setDelegate:(id<Protocol>)delegate;");
@@ -2169,6 +2216,18 @@ TEST_F(FormatTest, FormatObjCProtocol) {
                "@end\n");
 }
 
+TEST_F(FormatTest, FormatObjCMethodDeclarations) {
+  verifyFormat("- (void)doSomethingWith:(GTMFoo *)theFoo\n"
+               "                   rect:(NSRect)theRect\n"
+               "               interval:(float)theInterval {\n"
+               "}");
+  verifyFormat("- (void)shortf:(GTMFoo *)theFoo\n"
+               "          longKeyword:(NSRect)theRect\n"
+               "    evenLongerKeyword:(float)theInterval\n"
+               "                error:(NSError **)theError {\n"
+               "}");
+}
+
 TEST_F(FormatTest, FormatObjCMethodExpr) {
   verifyFormat("[foo bar:baz];");
   verifyFormat("return [foo bar:baz];");
@@ -2177,6 +2236,22 @@ TEST_F(FormatTest, FormatObjCMethodExpr) {
   verifyFormat("f(2, a ? b : c);");
   verifyFormat("[[self initWithInt:4] bar:[baz quux:arrrr]];");
 
+  // Unary operators.
+  verifyFormat("int a = +[foo bar:baz];");
+  verifyFormat("int a = -[foo bar:baz];");
+  verifyFormat("int a = ![foo bar:baz];");
+  verifyFormat("int a = ~[foo bar:baz];");
+  verifyFormat("int a = ++[foo bar:baz];");
+  verifyFormat("int a = --[foo bar:baz];");
+  verifyFormat("int a = sizeof [foo bar:baz];");
+  verifyFormat("int a = alignof [foo bar:baz];");
+  // FIXME: no space after & and *.
+  verifyFormat("int a = & [foo bar:baz];");
+  verifyFormat("int a = * [foo bar:baz];");
+  // FIXME: Make casts work, without breaking f()[4].
+  //verifyFormat("int a = (int) [foo bar:baz];");
+
+  // Binary operators.
   verifyFormat("[foo bar:baz], [foo bar:baz];");
   verifyFormat("[foo bar:baz] = [foo bar:baz];");
   verifyFormat("[foo bar:baz] *= [foo bar:baz];");
@@ -2217,7 +2292,7 @@ TEST_F(FormatTest, FormatObjCMethodExpr) {
   verifyFormat("[cond ? obj1 : obj2 methodWithParam:param]");
   verifyFormat("[button setAction:@selector(zoomOut:)];");
   verifyFormat("[color getRed:&r green:&g blue:&b alpha:&a];");
-  
+
   verifyFormat("arr[[self indexForFoo:a]];");
   verifyFormat("throw [self errorFor:a];");
   verifyFormat("@throw [self errorFor:a];");
@@ -2226,12 +2301,27 @@ TEST_F(FormatTest, FormatObjCMethodExpr) {
   // which would be at 80 columns.
   verifyFormat(
       "void f() {\n"
-      "  if ((self = [super initWithContentRect:contentRect styleMask:styleMask\n"
-      "          backing:NSBackingStoreBuffered defer:YES]))");
-  
+      "  if ((self = [super initWithContentRect:contentRect\n"
+      "                               styleMask:styleMask\n"
+      "                                 backing:NSBackingStoreBuffered\n"
+      "                                   defer:YES]))");
+
   verifyFormat("[foo checkThatBreakingAfterColonWorksOk:\n"
-               "    [bar ifItDoes:reduceOverallLineLengthLikeInThisCase]];");
-  
+               "        [bar ifItDoes:reduceOverallLineLengthLikeInThisCase]];");
+
+  verifyFormat("[myObj short:arg1 // Force line break\n"
+               "          longKeyword:arg2\n"
+               "    evenLongerKeyword:arg3\n"
+               "                error:arg4];");
+  verifyFormat(
+      "void f() {\n"
+      "  popup_window_.reset([[RenderWidgetPopupWindow alloc]\n"
+      "      initWithContentRect:NSMakeRect(origin_global.x, origin_global.y,\n"
+      "                                     pos.width(), pos.height())\n"
+      "                styleMask:NSBorderlessWindowMask\n"
+      "                  backing:NSBackingStoreBuffered\n"
+      "                    defer:NO]);\n"
+      "}");
 }
 
 TEST_F(FormatTest, ObjCAt) {

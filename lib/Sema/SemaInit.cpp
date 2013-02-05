@@ -4729,7 +4729,8 @@ PerformConstructorInitialization(Sema &S,
   // call.
   if (S.CompleteConstructorCall(Constructor, Args,
                                 Loc, ConstructorArgs,
-                                AllowExplicitConv))
+                                AllowExplicitConv,
+                                IsListInitialization))
     return ExprError();
 
 
@@ -5240,7 +5241,8 @@ InitializationSequence::Perform(Sema &S,
       QualType Ty = ResultType ? ResultType->getNonReferenceType() : Step->Type;
       bool IsTemporary = Entity.getType()->isReferenceType();
       InitializedEntity TempEntity = InitializedEntity::InitializeTemporary(Ty);
-      InitListChecker PerformInitList(S, IsTemporary ? TempEntity : Entity,
+      InitializedEntity InitEntity = IsTemporary ? TempEntity : Entity;
+      InitListChecker PerformInitList(S, InitEntity,
           InitList, Ty, /*VerifyOnly=*/false,
           Kind.getKind() != InitializationKind::IK_DirectList ||
             !S.getLangOpts().CPlusPlus11);
@@ -5259,7 +5261,9 @@ InitializationSequence::Perform(Sema &S,
       InitListExpr *StructuredInitList =
           PerformInitList.getFullyStructuredList();
       CurInit.release();
-      CurInit = S.Owned(StructuredInitList);
+      CurInit = shouldBindAsTemporary(InitEntity)
+          ? S.MaybeBindToTemporary(StructuredInitList)
+          : S.Owned(StructuredInitList);
       break;
     }
 
@@ -5471,9 +5475,9 @@ InitializationSequence::Perform(Sema &S,
       for (unsigned i = 0; i < NumInits; ++i) {
         Element.setElementIndex(i);
         ExprResult Init = S.Owned(ILE->getInit(i));
-        ExprResult Res = S.PerformCopyInitialization(Element,
-                                                     Init.get()->getExprLoc(),
-                                                     Init);
+        ExprResult Res = S.PerformCopyInitialization(
+                             Element, Init.get()->getExprLoc(), Init,
+                             /*TopLevelOfInitList=*/ true);
         assert(!Res.isInvalid() && "Result changed since try phase.");
         Converted[i] = Res.take();
       }
@@ -6186,7 +6190,11 @@ void InitializationSequence::dump(raw_ostream &OS) const {
       OS << "OpenCL event_t from zero";
       break;
     }
+
+    OS << " [" << S->Type.getAsString() << ']';
   }
+
+  OS << '\n';
 }
 
 void InitializationSequence::dump() const {

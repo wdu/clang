@@ -207,6 +207,17 @@ RawComment *ASTContext::getRawCommentForDeclNoCache(const Decl *D) const {
   if (Invalid)
     return NULL;
 
+    // We have observed that getLocation() returns the right thing
+    // while getLocStart() does not
+    if (!(D->getLocStart().isInvalid() || !D->getLocStart().isFileID()))
+        DeclLoc = D->getLocStart();
+
+    // If the declaration doesn't map directly to a location in a file, we
+    // can't find the comment.
+    if (DeclLoc.isInvalid() || !DeclLoc.isFileID())
+        return NULL;
+    DeclLocDecomp = SourceMgr.getDecomposedLoc(DeclLoc);
+
   // Extract text between the comment and declaration.
   StringRef Text(Buffer + CommentEndDecomp.second,
                  DeclLocDecomp.second - CommentEndDecomp.second);

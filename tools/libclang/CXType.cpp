@@ -343,11 +343,11 @@ CXType clang_getPointeeType(CXType CT) {
 
 CXString clang_getTypeAsString(CXType CT) {
   if (CT.kind == CXType_Invalid)
-    return cxstring::createCXString("CXType_Invalid");
+    return cxstring::createRef("CXType_Invalid");
 
   QualType T = GetQualType(CT);
 
-  return cxstring::createCXString(T.getAsString());
+  return cxstring::createDup(T.getAsString());
 }
 
 CXString clang_getDefaultValueAsString(CXCursor C) {
@@ -365,7 +365,7 @@ CXString clang_getDefaultValueAsString(CXCursor C) {
       retval = StrOS.str();
     }
   }
-  return cxstring::createCXString(retval);
+  return cxstring::createDup(retval);
 }
 
 bool clang_isPolymorphic(CXType CT) {
